@@ -11,7 +11,7 @@ from keras.layers.normalization import BatchNormalization
 from keras.utils.data_utils import get_file
 from keras.models import Sequential
 from keras.layers.core import Flatten, Dense, Dropout, Lambda
-from keras.layers.convolutional import Convolution2D, MaxPooling2D, ZeroPadding2D
+from keras.layers.convolutional import Conv2D, MaxPooling2D, ZeroPadding2D
 from keras.layers.pooling import GlobalAveragePooling2D
 from keras.optimizers import SGD, RMSprop, Adam
 from keras.preprocessing import image
@@ -97,7 +97,7 @@ class Vgg16():
         model = self.model
         for i in range(layers):
             model.add(ZeroPadding2D((1, 1)))
-            model.add(Convolution2D(filters, 3, 3, activation='relu'))
+            model.add(Conv2D(filters, 3, 3, activation='relu'))
         model.add(MaxPooling2D((2, 2), strides=(2, 2)))
 
 
@@ -209,8 +209,23 @@ class Vgg16():
             Fits the model on data yielded batch-by-batch by a Python generator.
             See Keras documentation: https://keras.io/models/model/
         """
-        self.model.fit_generator(batches, samples_per_epoch=batches.nb_sample, nb_epoch=nb_epoch,
-                validation_data=val_batches, nb_val_samples=val_batches.nb_sample)
+
+        #was:
+        #self.model.fit_generator(batches, samples_per_epoch=batches.samples, nb_epoch=nb_epoch,
+        #        validation_data=val_batches, nb_val_samples=val_batches.samples)
+
+        # see https://github.com/fchollet/keras/wiki/Keras-2.0-release-notes:
+        # and: https://keras.io/models/sequential/#sequential-model-methods
+        # steps_per_epoch: 
+        # Total number of steps (batches of samples) to yield from generator before declaring one epoch finished and starting
+        # the next epoch. It should typically be equal to the number of unique samples of your dataset divided by the batch
+        # size.
+
+        self.model.fit_generator(batches, 
+                                 steps_per_epoch=int(batches.samples/batches.batch_size),
+                                 epochs=nb_epoch,
+                                 validation_data=val_batches, 
+                                 validation_steps=int(val_batches.samples/val_batches.batch_size))
 
 
     def test(self, path, batch_size=8):
